@@ -6,32 +6,28 @@ public class PlayerHealth : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
 
-    // Optional UI reference
     public Slider healthBar;
 
-    // Optional invincibility frames
-    public float invincibilityTime = 0.5f;
-    private float lastDamageTime = -10f;
 
     void Start()
     {
+        healthBar.minValue = 0;
+        healthBar.maxValue = maxHealth;
+        healthBar.value = maxHealth;
         currentHealth = maxHealth;
-        UpdateHealthUI();
+    }
+
+    public void OnCollisionEnter(Collision collision)
+    {
+        Debug.Log("Collision detected with: " + collision.gameObject.name);
+        TakeDamage(10f);
     }
 
     public void TakeDamage(float damageAmount)
     {
-        // Check for invincibility frames
-        if (Time.time < lastDamageTime + invincibilityTime)
-            return;
-
-        lastDamageTime = Time.time;
 
         currentHealth -= damageAmount;
         UpdateHealthUI();
-
-        // Play damage effects
-        // Example: GetComponent<AudioSource>().Play();
 
         if (currentHealth <= 0)
         {
@@ -39,31 +35,15 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    public void Heal(float healAmount)
-    {
-        currentHealth = Mathf.Min(currentHealth + healAmount, maxHealth);
-        UpdateHealthUI();
-    }
-
     private void UpdateHealthUI()
     {
-        // Update UI if available
-        if (healthBar != null)
-        {
-            healthBar.value = currentHealth / maxHealth;
-        }
+    
+        healthBar.value = currentHealth;
+
     }
 
     private void Die()
     {
-        // Handle player death
         Debug.Log("Player has died!");
-
-        // Example: Reload level, show game over screen, etc.
-        // SceneManager.LoadScene("GameOver");
-
-        // Or just reset health for testing
-        // currentHealth = maxHealth;
-        // UpdateHealthUI();
     }
 }
