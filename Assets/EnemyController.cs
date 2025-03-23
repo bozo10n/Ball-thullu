@@ -4,15 +4,18 @@ using UnityEngine.AI;
 
 public class SphereEnemy : MonoBehaviour
 {
-    public Transform target;
+    public Transform player;
     private NavMeshAgent agent;
     private Rigidbody rb;
 
-    public float launchRange = 5f;
-    public bool launched = false;
+    public bool walkPointSet = false;
+    private Vector3 walkPoint;
+    private float walkPointRange = 50f;
+    public LayerMask ground;
 
-    public float launchForce = 20f;
-    public float upwardForce = 10f;
+    private float sightRange = 10f;
+    private float attackRange = 5f;
+
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -22,46 +25,72 @@ public class SphereEnemy : MonoBehaviour
 
     private void Update()
     {
-        if (launched)
-        {
-            if(IsGrounded())
-            {
-                ResetNavigation();
-            }
-            return;
-        }
 
-        float distance = Vector3.Distance(transform.position, target.position);
+        Vector3 distanceToPlayer = player.position - transform.position;
 
-        if (distance <= launchRange)
+        if (distanceToPlayer.magnitude < sightRange)
         {
-            Launch();
+            ChasePlayer();
         }
         else
         {
-            agent.destination = target.position;
+            Patroling();
+        }    
+
+    }
+
+
+    private void Patroling()
+    {
+        if (!walkPointSet)
+        {
+            SearchWalkPoint();
+        }
+
+        if (walkPointSet)
+        {
+            agent.SetDestination(walkPoint);
+        }
+
+        Vector3 distanceToWalkPoint = transform.position - walkPoint;
+
+        if (distanceToWalkPoint.magnitude < 1f)
+        {
+            walkPointSet = false;
         }
     }
 
-    private void Launch()
+    private void SearchWalkPoint()
     {
-        launched = true;
-        agent.enabled = false;
-        rb.isKinematic = false;
-        Vector3 LaunchDirection = (target.position - transform.position).normalized;
+        float randomZ = Random.Range(-walkPointRange, walkPointRange);
+        float randomX = Random.Range(-walkPointRange, walkPointRange);
+        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
 
-        LaunchDirection.y = 0;
-
-        rb.AddForce(LaunchDirection * launchForce + Vector3.up * upwardForce, ForceMode.Impulse);
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(walkPoint, out hit, 2f, NavMesh.AllAreas))
+        {
+            walkPoint = hit.position;
+            walkPointSet = true;
+        }
     }
 
-    private void ResetNavigation()
+    private void ChasePlayer()
     {
-        launched = false;
-        
-        rb.isKinematic = true;
-        rb.linearVelocity = Vector3.zero;
-        agent.enabled = true;
+        agent.SetDestination(player.position);
+    }
+
+
+    private void AttackPlayer()
+    {
+        agent.SetDestination(transform.position);
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(walkPoint, 1f);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, sightRange);
     }
 
     private bool IsGrounded()
