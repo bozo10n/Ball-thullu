@@ -17,10 +17,13 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    public void OnCollisionEnter(Collision collision)
+    private void Update()
     {
-        Debug.Log("Collision detected with: " + collision.gameObject.name);
-        TakeDamage(10f);
+
+        if(Input.GetKeyDown(KeyCode.Tab))
+        {
+            TakeDamage(10f);
+        }
     }
 
     public void TakeDamage(float damageAmount)

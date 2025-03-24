@@ -4,38 +4,53 @@ using UnityEngine.AI;
 
 public class SphereEnemy : MonoBehaviour
 {
+    [SerializeField]
     public Transform player;
     private NavMeshAgent agent;
     private Rigidbody rb;
+
+    private Renderer rend;
 
     public bool walkPointSet = false;
     private Vector3 walkPoint;
     private float walkPointRange = 50f;
     public LayerMask ground;
 
-    private float sightRange = 10f;
-    private float attackRange = 5f;
+    private bool alreadyAttacked = false;
+    private float timeBetweenAttacks = 5f;
+
+    private float attackDamage = 10f;
+
+    [SerializeField]
+    private float sightRange = 8f;
+    [SerializeField]
+    private float attackRange = 4f;
 
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
+        rend = GetComponent<MeshRenderer>();
+        rend.material.color = Color.black;
     }
-
     private void Update()
     {
 
         Vector3 distanceToPlayer = player.position - transform.position;
 
-        if (distanceToPlayer.magnitude < sightRange)
+        if (distanceToPlayer.magnitude < sightRange && distanceToPlayer.magnitude > attackRange)
         {
             ChasePlayer();
+        }
+        else if (distanceToPlayer.magnitude < sightRange && distanceToPlayer.magnitude < attackRange)
+        {
+            AttackPlayer();
         }
         else
         {
             Patroling();
-        }    
+        }
 
     }
 
@@ -83,12 +98,68 @@ public class SphereEnemy : MonoBehaviour
     private void AttackPlayer()
     {
         agent.SetDestination(transform.position);
+
+        if (!alreadyAttacked)
+        {
+            alreadyAttacked = true;
+
+            Invoke(nameof(ResetAttack), timeBetweenAttacks);
+
+
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, transform.forward, out hit, attackRange))
+            {
+                Debug.Log("Raycast hit: " + hit.transform.name);
+                Explode();
+                PlayerHealth playerHealth = hit.transform.GetComponent<PlayerHealth>() ?? hit.transform.GetComponentInParent<PlayerHealth>() ?? hit.transform.GetComponentInChildren<PlayerHealth>();
+
+                if (playerHealth == null)
+                {
+                    Debug.LogError("player Health compontent is null");
+                }
+
+                if (playerHealth != null && (player.position - transform.position).magnitude < attackRange)
+                {
+                    playerHealth.TakeDamage(attackDamage);
+                }
+                
+            }
+        }
     }
 
+    private void ResetAttack()
+    {
+        StopAllCoroutines();
+        rend.material.color = Color.black;
+        alreadyAttacked = false;
+    }
+
+    private void Explode()
+    {
+        StartCoroutine(BlinkBeforeExplosion());
+    }
+    private IEnumerator BlinkBeforeExplosion()
+    {
+        float duration = 0f;
+        float totalDuration = 3f;
+        while (duration < totalDuration)
+        {
+            rend.material.color = Color.red;
+            yield return new WaitForSeconds(0.06f);
+            rend.material.color = Color.black;
+            yield return new WaitForSeconds(0.06f);
+            rend.material.color = Color.blue;
+            yield return new WaitForSeconds(0.06f);
+            duration += 1;
+        }
+        rend.material.color = Color.grey;
+    }
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.blue;
         Gizmos.DrawSphere(walkPoint, 1f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, sightRange);
     }
@@ -97,5 +168,4 @@ public class SphereEnemy : MonoBehaviour
     {
         return Physics.Raycast(transform.position, Vector3.down, 1.1f);
     }
-}   
-
+}
