@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 using UnityEngine.AI;
 
-public class SphereEnemy : MonoBehaviour
+public class EnemyController : MonoBehaviour
 {
     [SerializeField]
     public Transform player;
