@@ -105,25 +105,30 @@ public class EnemyController : MonoBehaviour
 
             Invoke(nameof(ResetAttack), timeBetweenAttacks);
 
-
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, transform.forward, out hit, attackRange))
+            RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, attackRange);
+            
+            foreach(RaycastHit hit in hits)
             {
-                Debug.Log("Raycast hit: " + hit.transform.name);
-                Explode();
-                PlayerHealth playerHealth = hit.transform.GetComponent<PlayerHealth>() ?? hit.transform.GetComponentInParent<PlayerHealth>() ?? hit.transform.GetComponentInChildren<PlayerHealth>();
 
-                if (playerHealth == null)
-                {
-                    Debug.LogError("player Health compontent is null");
-                }
+            Debug.Log("Raycast hit: " + hit.transform.name);
+            Explode();
+            PlayerHealth playerHealth = hit.transform.GetComponent<PlayerHealth>() ?? hit.transform.GetComponentInParent<PlayerHealth>() ?? hit.transform.GetComponentInChildren<PlayerHealth>();
 
-                if (playerHealth != null && (player.position - transform.position).magnitude < attackRange)
-                {
-                    playerHealth.TakeDamage(attackDamage);
-                }
-                
+            if (playerHealth == null)
+            {
+              Debug.LogError("player Health compontent is null");
             }
+
+            if (playerHealth != null && (player.position - transform.position).magnitude < attackRange)
+               {
+                 playerHealth.TakeDamage(attackDamage);
+               }
+            else
+                {
+                    Debug.LogWarning("Player is too far for damage");
+                }
+            }
+            
         }
     }
 

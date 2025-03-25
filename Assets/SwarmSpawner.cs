@@ -1,8 +1,8 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections;
 
-public class Spawner : MonoBehaviour
+public class SwarmSpawner : MonoBehaviour
 {
     [SerializeField]
     public GameObject enemyPrefab;
@@ -10,7 +10,8 @@ public class Spawner : MonoBehaviour
     public float spawnRange = 20f;
     public int numberOfEnemies = 20;
 
-    public Transform player;
+    [SerializeField]
+    public Transform destination;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -23,27 +24,27 @@ public class Spawner : MonoBehaviour
         for (int i = 0; i < numberOfEnemies; i++)
         {
             Vector3 spawnPosition = GetRandomPosition();
-            GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+            GameObject swarmAgent = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
 
-            EnemyController enemyController = enemy.GetComponent<EnemyController>() ?? enemy.GetComponentInParent <EnemyController>() ?? enemy.GetComponentInChildren<EnemyController>();
+            SwarmAgent swarmAgentController = swarmAgent.GetComponent<SwarmAgent>() ?? swarmAgent.GetComponentInParent<SwarmAgent>() ?? swarmAgent.GetComponentInChildren<SwarmAgent>();
 
-            enemyController.player = player;
+            swarmAgentController.destination = destination;
 
             yield return new WaitForSeconds(2f);
         }
-    }    
+    }
     private Vector3 GetRandomPosition()
     {
         float random_x = Random.Range(-spawnRange, spawnRange);
         float random_z = Random.Range(-spawnRange, spawnRange);
         Vector3 newPosition = new Vector3(random_x, 0, random_z) + transform.position;
 
-        NavMeshHit hit; 
+        NavMeshHit hit;
         if (NavMesh.SamplePosition(newPosition, out hit, 2f, NavMesh.AllAreas))
         {
             return hit.position;
         }
 
         return newPosition;
-    }    
+    }
 }
