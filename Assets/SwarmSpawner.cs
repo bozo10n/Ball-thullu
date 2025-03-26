@@ -30,7 +30,7 @@ public class SwarmSpawner : MonoBehaviour
 
             swarmAgentController.destination = destination;
 
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(0.1f);
         }
     }
     private Vector3 GetRandomPosition()

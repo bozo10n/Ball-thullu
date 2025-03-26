@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NUnit.Framework.Constraints;
 using UnityEngine;
 
 public class SwarmController : MonoBehaviour
@@ -33,6 +34,20 @@ public class SwarmController : MonoBehaviour
         if (!swarmBalls.Contains(ball))
         {
             swarmBalls.Add(ball);
+
+            float randomShape = Random.Range(0, 20);
+
+            if (randomShape < 7)
+            {
+                Renderer rend = ball.GetComponent<MeshRenderer>();
+                rend.material.color = Color.black;
+            }
+            else if (randomShape > 10)
+            {
+                Renderer rend = ball.GetComponent<MeshRenderer>();
+                rend.material.color = Color.white;
+            }
+
             Vector3 randomAxis = new Vector3(Random.value, 1f, Random.value).normalized;
             orbitAxes[ball] = randomAxis;
             velocities[ball] = Vector3.zero;
@@ -44,7 +59,6 @@ public class SwarmController : MonoBehaviour
         foreach (Transform swarmBall in swarmBalls)
         {
             if (swarmBall == null) { continue; }
-
             // Boids-inspired emergent behavior
             Vector3 separation = CalculateSeparation(swarmBall);
             Vector3 alignment = CalculateAlignment(swarmBall);
