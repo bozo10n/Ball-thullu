@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-public class SwarmAgent : MonoBehaviour
+public class ChakraAgent : MonoBehaviour
 {
     [SerializeField]
     private NavMeshAgent swarmAgent;
@@ -14,6 +14,11 @@ public class SwarmAgent : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;
         swarmAgent.SetDestination(destination.position);
+
+        if (ChakraController.Instance == null)
+        {
+            Debug.LogError("ChakraController instance is null!");
+        }
     }
 
     private void Update()
@@ -21,9 +26,8 @@ public class SwarmAgent : MonoBehaviour
         Vector3 distanceToDestination = destination.position - transform.position;
         if (distanceToDestination.magnitude < 2f)
         {
-            
             swarmAgent.enabled = false;
-            SwarmController.Instance.addToSwarm(this.transform);
+            ChakraController.Instance.addToSwarm(this.transform);
         }
     }
 
