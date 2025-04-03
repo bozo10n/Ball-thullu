@@ -10,6 +10,7 @@ public class SwarmAgent : MonoBehaviour
     private Rigidbody rb;
     private void Start()
     {
+        
         swarmAgent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
         rb.isKinematic = true;

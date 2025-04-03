@@ -1,9 +1,14 @@
+using System.Collections;
 using System.Collections.Generic;
+using System.Net;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class ChakraController : MonoBehaviour
 {
     public static ChakraController Instance;
+
+    public Transform player;
 
     public Transform swarmCenter;
     public List<Transform> swarmBalls = new List<Transform>();
@@ -19,13 +24,13 @@ public class ChakraController : MonoBehaviour
     public float separationRadius = 2f;
     public float separationForce = 2f;
 
-    // New parameters for smooth spin
-    public float spinAccelerationTime = 2f; // Time to reach full speed
+    public float spinAccelerationTime = 2f; 
     public AnimationCurve spinAccelerationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private Vector3 sharedOrbitalAxis;
     private float spinStartTime;
 
+    private bool isOnCooldown = false;
     private void Awake()
     {
         Instance = this;
@@ -64,6 +69,21 @@ public class ChakraController : MonoBehaviour
     }
 
     private void Update()
+    {
+        swarmBalls.RemoveAll(ball => ball == null);
+        formChakra();
+        Vector3 distanceToPlayer = player.position - swarmCenter.position;
+
+        if (distanceToPlayer.magnitude < 8f && !isOnCooldown)
+        {
+            Debug.Log("Player in range");
+            shootSwarmBall();
+            StartCoroutine(ShootCooldown());
+        }
+        
+    }
+
+    private void formChakra()
     {
         // Calculate current spin acceleration progress
         float spinProgress = Mathf.Clamp01((Time.time - spinStartTime) / spinAccelerationTime);
@@ -126,5 +146,53 @@ public class ChakraController : MonoBehaviour
             }
         }
         return separationMove;
+    }
+
+    private void shootSwarmBall()
+    {
+        if (swarmBalls.Count == 0) { return; }
+
+        Transform chosenBall = swarmBalls[Random.Range(0, swarmBalls.Count)];
+        swarmBalls.Remove(chosenBall);
+
+        if (orbitalAxes.ContainsKey(chosenBall)) { orbitalAxes.Remove(chosenBall); }
+        if (orbitalSpeeds.ContainsKey(chosenBall)) { orbitalSpeeds.Remove(chosenBall);  }
+        if (orbitalOffsets.ContainsKey(chosenBall)) { orbitalOffsets.Remove(chosenBall); }
+        if (currentSpeedMultipliers.ContainsKey(chosenBall)) { currentSpeedMultipliers.Remove(chosenBall); }
+
+        Vector3 shootDirection = (player.position - chosenBall.position).normalized;
+
+        float shootVelocity = 18f;
+        Vector3 velocity = shootDirection * shootVelocity;
+
+        Rigidbody rb = chosenBall.GetComponent<Rigidbody>();
+
+        if (rb == null)
+        {
+            rb = chosenBall.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+        }
+        rb.useGravity = false;
+        chosenBall.gameObject.AddComponent<SphereCollider>();
+        rb.isKinematic = false;
+
+        rb.AddForce(shootDirection * shootVelocity, ForceMode.VelocityChange);
+
+        Destroy(chosenBall.gameObject, 3f);
+
+        
+    }
+
+    private IEnumerator ShootCooldown()
+    {
+        isOnCooldown = true;
+        yield return new WaitForSeconds(0.8f);
+        isOnCooldown = false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawWireSphere(swarmCenter.position, 8f);
+        Gizmos.color = Color.yellow;
     }
 }

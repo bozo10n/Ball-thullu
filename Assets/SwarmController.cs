@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class SwarmController : MonoBehaviour
 {
+    public Transform player;
 
     public static SwarmController Instance;
     public Transform swarmCenter;
@@ -51,6 +53,46 @@ public class SwarmController : MonoBehaviour
 
     private void Update()
     {
+        formSwarm();
+
+        float distanceToPlayer = (player.position - swarmCenter.position).magnitude;
+
+        
+    }
+    
+    private void shootPlayer()
+    {
+        if (swarmBalls.Count == 0) { return; }
+
+        Transform chosenBall = swarmBalls[Random.Range(0, swarmBalls.Count)];
+        swarmBalls.Remove(chosenBall);
+
+        if (orbitalAxes.ContainsKey(chosenBall)) { orbitalAxes.Remove(chosenBall); }
+        if (orbitalSpeeds.ContainsKey(chosenBall)) { orbitalSpeeds.Remove(chosenBall); }
+        if (orbitalOffsets.ContainsKey(chosenBall)) { orbitalOffsets.Remove(chosenBall); }
+
+        Vector3 shootDirection = (player.position - chosenBall.position).normalized;
+
+        float shootVelocity = 7f;
+        Vector3 velocity = shootDirection * shootVelocity;
+
+        Rigidbody rb = chosenBall.GetComponent<Rigidbody>();
+
+        if (rb == null)
+        {
+            rb = chosenBall.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+        }
+        chosenBall.gameObject.AddComponent<SphereCollider>();
+        rb.isKinematic = false;
+
+        rb.AddForce(shootDirection * shootVelocity, ForceMode.VelocityChange);
+
+        Destroy(chosenBall.gameObject, 5f);
+    }    
+
+    private void formSwarm()
+    {
         foreach (Transform swarmBall in swarmBalls)
         {
             if (swarmBall == null) { continue; }
@@ -71,7 +113,7 @@ public class SwarmController : MonoBehaviour
             swarmBall.position = newPosition;
 
         }
-    }
+    }    
 
     private Vector3 CalculateOrbitalPosition(Transform swarmBall)
     {

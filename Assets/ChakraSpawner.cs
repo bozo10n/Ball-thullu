@@ -47,4 +47,6 @@ public class ChakraSpawner : MonoBehaviour
 
         return newPosition;
     }
+
+   
 }

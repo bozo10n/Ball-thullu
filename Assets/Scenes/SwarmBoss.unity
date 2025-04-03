@@ -441,10 +441,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e73b8dc9767b63d47b86f56c18677aeb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 230991833}
   swarmCenter: {fileID: 100916316}
   swarmBalls: []
   formationRadius: 0.63
-  orbitalSpeed: 500
+  orbitalSpeed: 600
   cohesionStrength: 2
   separationRadius: 2
   separationForce: 2
@@ -454,21 +455,21 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
-      inSlope: 7.147197
-      outSlope: 7.147197
+      value: -0.002105713
+      inSlope: 0.011339744
+      outSlope: 0.011339744
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
-      outWeight: 0.027777784
+      outWeight: 0.41666666
     - serializedVersion: 3
       time: 1
       value: 1
-      inSlope: 7.3546367
-      outSlope: 7.3546367
+      inSlope: 0.024992628
+      outSlope: 0.024992628
       tangentMode: 0
       weightedMode: 0
-      inWeight: 0.020370364
+      inWeight: 0.46111113
       outWeight: 0
     m_PreInfinity: 2
     m_PostInfinity: 2
@@ -656,6 +657,10 @@ PrefabInstance:
     - target: {fileID: 1973422820277586592, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: m_Name
       value: ChakraDestination
+      objectReference: {fileID: 0}
+    - target: {fileID: 2369714935499915349, guid: 5db588d1b9473e545abb549417887c04, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3226621064976648585, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: player
@@ -1302,6 +1307,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3190049402594263366, guid: 5db588d1b9473e545abb549417887c04, type: 3}
+      propertyPath: player
+      value: 
+      objectReference: {fileID: 230991833}
+    - target: {fileID: 3190049402594263366, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
@@ -1336,6 +1345,10 @@ PrefabInstance:
     - target: {fileID: 3499969841948883348, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: m_Name
       value: Swarm
+      objectReference: {fileID: 0}
+    - target: {fileID: 3499969841948883348, guid: 5db588d1b9473e545abb549417887c04, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5918504806421893114, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: m_Enabled
