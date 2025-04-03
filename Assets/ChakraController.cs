@@ -99,6 +99,7 @@ public class ChakraController : MonoBehaviour
     private void Update()
     {
         swarmBalls.RemoveAll(ball => ball == null);
+
         formChakra();
         Vector3 distanceToPlayer = player.position - swarmCenter.position;
 
@@ -202,13 +203,16 @@ public class ChakraController : MonoBehaviour
         }
         rb.useGravity = true;
         chosenBall.gameObject.AddComponent<SphereCollider>();
+        
         rb.isKinematic = false;
 
         rb.AddForce(shootDirection * shootVelocity, ForceMode.VelocityChange);
+        chosenBall.gameObject.AddComponent<DamageOnCollision>();
 
-        Destroy(chosenBall.gameObject, 3f);
-
-
+        if (chosenBall.gameObject != null)
+        {
+            Destroy(chosenBall.gameObject, 3f);
+        }
     }
 
     private IEnumerator ShootCooldown()
