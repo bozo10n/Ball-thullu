@@ -24,7 +24,7 @@ public class ChakraController : MonoBehaviour
     public float separationRadius = 2f;
     public float separationForce = 2f;
 
-    public float spinAccelerationTime = 2f; 
+    public float spinAccelerationTime = 2f;
     public AnimationCurve spinAccelerationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
 
     private Vector3 sharedOrbitalAxis;
@@ -44,14 +44,22 @@ public class ChakraController : MonoBehaviour
         if (!swarmBalls.Contains(ball))
         {
             swarmBalls.Add(ball);
+
+            TrailRenderer tr = ball.gameObject.AddComponent<TrailRenderer>();
+            tr.time = 0.5f;
+
+            tr.widthMultiplier = 0.3f;
+            tr.material = new Material(Shader.Find("Sprites/Default"));
             Renderer rend = ball.GetComponent<MeshRenderer>();
+
+           
 
             // Color assignment
             float randomShape = Random.value;
             rend.material.color = randomShape < 0.3 ? Color.black :
                                    randomShape > 0.7 ? Color.white :
                                    Color.black;
-
+            tr.colorGradient = CreateGradient(rend.material.color);
             // Orbital parameters
             Vector3 randomAxis = Random.insideUnitSphere.normalized;
             orbitalAxes[ball] = randomAxis;
@@ -68,6 +76,26 @@ public class ChakraController : MonoBehaviour
         }
     }
 
+    private Gradient CreateGradient(Color baseColor)
+    {
+        Gradient gradient = new Gradient();
+
+        Color transparentColor = baseColor;
+        transparentColor.a = 0;
+
+        gradient.SetKeys(
+            new GradientColorKey[] {
+            new GradientColorKey(baseColor, 0.0f),
+            new GradientColorKey(baseColor, 0.5f)
+            },
+            new GradientAlphaKey[] {
+            new GradientAlphaKey(1.0f, 0.0f),
+            new GradientAlphaKey(0.0f, 1.0f)
+            }
+        );
+
+        return gradient;
+    }
     private void Update()
     {
         swarmBalls.RemoveAll(ball => ball == null);
@@ -80,7 +108,7 @@ public class ChakraController : MonoBehaviour
             shootSwarmBall();
             StartCoroutine(ShootCooldown());
         }
-        
+
     }
 
     private void formChakra()
@@ -156,7 +184,7 @@ public class ChakraController : MonoBehaviour
         swarmBalls.Remove(chosenBall);
 
         if (orbitalAxes.ContainsKey(chosenBall)) { orbitalAxes.Remove(chosenBall); }
-        if (orbitalSpeeds.ContainsKey(chosenBall)) { orbitalSpeeds.Remove(chosenBall);  }
+        if (orbitalSpeeds.ContainsKey(chosenBall)) { orbitalSpeeds.Remove(chosenBall); }
         if (orbitalOffsets.ContainsKey(chosenBall)) { orbitalOffsets.Remove(chosenBall); }
         if (currentSpeedMultipliers.ContainsKey(chosenBall)) { currentSpeedMultipliers.Remove(chosenBall); }
 
@@ -172,7 +200,7 @@ public class ChakraController : MonoBehaviour
             rb = chosenBall.AddComponent<Rigidbody>();
             rb.useGravity = false;
         }
-        rb.useGravity = false;
+        rb.useGravity = true;
         chosenBall.gameObject.AddComponent<SphereCollider>();
         rb.isKinematic = false;
 
@@ -180,7 +208,7 @@ public class ChakraController : MonoBehaviour
 
         Destroy(chosenBall.gameObject, 3f);
 
-        
+
     }
 
     private IEnumerator ShootCooldown()

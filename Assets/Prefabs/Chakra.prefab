@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1734426505410853132}
-  - component: {fileID: 5918504806421893114}
+  - component: {fileID: 3786101506321001188}
   m_Layer: 0
-  m_Name: SwarmSpawner
+  m_Name: ChakraSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 879473121979052848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5918504806421893114
+--- !u!114 &3786101506321001188
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,11 +41,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 432034379381858684}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a5bb3cd3f0262c94185b00085f4b39a1, type: 3}
+  m_Script: {fileID: 11500000, guid: 77121f9284aec5140b0a1bedf01ea110, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 1911606057725424351, guid: 598a35ff952600141aa89d5ba365a583, type: 3}
-  spawnRange: 10
+  enemyPrefab: {fileID: 563460546611228875, guid: 82a5321866d37e94ea573c3b927ff7f3, type: 3}
+  spawnRange: 15
   numberOfEnemies: 10
   destination: {fileID: 3903346484873061906}
 --- !u!1 &1973422820277586592
@@ -58,7 +58,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3903346484873061906}
   m_Layer: 0
-  m_Name: SwarmDestination
+  m_Name: ChakraDestination
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -248,7 +248,7 @@ Transform:
   m_GameObject: {fileID: 3600431885425303148}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9.850431, y: -79.11, z: 13.964193}
+  m_LocalPosition: {x: -12.39, y: -79.11, z: 13.964193}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -268,9 +268,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 0}
-  followDelay: 20
+  followDelay: 5
   followSpeed: 2
-  followDistance: 5
+  followDistance: 2
 --- !u!1 &3603265944692370756
 GameObject:
   m_ObjectHideFlags: 0
@@ -280,9 +280,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7619448412748761}
-  - component: {fileID: 3190049402594263366}
+  - component: {fileID: 3114122518664278786}
   m_Layer: 0
-  m_Name: SwarmController
+  m_Name: ChakraController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -303,7 +303,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 879473121979052848}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3190049402594263366
+--- !u!114 &3114122518664278786
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -312,13 +312,39 @@ MonoBehaviour:
   m_GameObject: {fileID: 3603265944692370756}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b018901d6513d44fa630d0c7fedcdc3, type: 3}
+  m_Script: {fileID: 11500000, guid: e73b8dc9767b63d47b86f56c18677aeb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  player: {fileID: 0}
   swarmCenter: {fileID: 6783431784879507717}
   swarmBalls: []
-  formationRadius: 1.3
-  orbitalSpeed: 100
+  formationRadius: 0.63
+  orbitalSpeed: 600
   cohesionStrength: 2
   separationRadius: 2
   separationForce: 2
+  spinAccelerationTime: 2
+  spinAccelerationCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: -0.002105713
+      inSlope: 0.011339744
+      outSlope: 0.011339744
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.41666666
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0.024992628
+      outSlope: 0.024992628
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.46111113
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
