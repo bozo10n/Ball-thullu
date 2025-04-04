@@ -48,11 +48,9 @@ public class ChakraController : MonoBehaviour
             TrailRenderer tr = ball.gameObject.AddComponent<TrailRenderer>();
             tr.time = 0.5f;
 
-            tr.widthMultiplier = 0.3f;
+            tr.widthMultiplier = 0.1f;
             tr.material = new Material(Shader.Find("Sprites/Default"));
             Renderer rend = ball.GetComponent<MeshRenderer>();
-
-           
 
             // Color assignment
             float randomShape = Random.value;
@@ -98,6 +96,8 @@ public class ChakraController : MonoBehaviour
     }
     private void Update()
     {
+        CleansSwarmDictionaries();
+
         swarmBalls.RemoveAll(ball => ball == null);
 
         formChakra();
@@ -110,6 +110,25 @@ public class ChakraController : MonoBehaviour
             StartCoroutine(ShootCooldown());
         }
 
+    }
+
+    private void CleansSwarmDictionaries()
+    {
+        List<Transform> nullKeys = new List<Transform>();
+
+        foreach (Transform key in orbitalAxes.Keys)
+        {
+            if (key == null) { nullKeys.Add(key); }
+        }
+
+        foreach (Transform key in nullKeys)
+        {
+            orbitalAxes.Remove(key);
+            orbitalOffsets.Remove(key);
+            orbitalSpeeds.Remove(key);
+            currentSpeedMultipliers.Remove(key);
+            nullKeys.Remove(key);
+        }
     }
 
     private void formChakra()
@@ -189,7 +208,7 @@ public class ChakraController : MonoBehaviour
         if (orbitalOffsets.ContainsKey(chosenBall)) { orbitalOffsets.Remove(chosenBall); }
         if (currentSpeedMultipliers.ContainsKey(chosenBall)) { currentSpeedMultipliers.Remove(chosenBall); }
 
-        Vector3 shootDirection = (player.position - chosenBall.position).normalized;
+        Vector3 shootDirection = (player.position - chosenBall.position + new Vector3(Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f))).normalized;
 
         float shootVelocity = 18f;
         Vector3 velocity = shootDirection * shootVelocity;

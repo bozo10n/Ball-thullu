@@ -27,6 +27,9 @@ public class DamageOnCollision : MonoBehaviour
                 Debug.LogWarning("Player is too far for damage");
             }
 
+            Rigidbody pRb = collision.gameObject.GetComponent<Rigidbody>() ?? collision.gameObject.GetComponentInParent<Rigidbody>() ?? collision.gameObject.GetComponentInChildren<Rigidbody>();
+
+            pRb.AddForce(collision.transform.position + Vector3.up * 100f, ForceMode.Impulse);
             Destroy(gameObject);
         }
     }
