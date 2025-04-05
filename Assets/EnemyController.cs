@@ -98,11 +98,12 @@ public class EnemyController : MonoBehaviour
     private void AttackPlayer()
     {
         agent.SetDestination(transform.position);
+        transform.LookAt(player);
 
         if (!alreadyAttacked)
         {
             alreadyAttacked = true;
-
+            
             Invoke(nameof(ResetAttack), timeBetweenAttacks);
 
             RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, attackRange);

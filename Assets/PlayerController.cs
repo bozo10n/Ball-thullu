@@ -19,11 +19,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private Transform mainCamera; // referene to main camera
     private CharacterController characterController; // reference to character controller
-    
+    private Animator anim;
+
 
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
+        anim = GetComponentInChildren<Animator>();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -34,6 +36,11 @@ public class PlayerController : MonoBehaviour
         HandleMouse();
 
         HandleMovement();
+
+        if(characterController.isGrounded)
+        {
+            anim.SetBool("isJumping", false);
+        }    
     }
 
     private void HandleMouse()
@@ -54,11 +61,13 @@ public class PlayerController : MonoBehaviour
     {
         if (characterController.isGrounded)
         {
+            
             verticalVelocity = -0.5f;
 
             if (Input.GetButtonDown("Jump"))
             {
                 verticalVelocity = Mathf.Sqrt(2f * gravity * 2f);
+                anim.SetBool("isJumping", true);
             }
         }
         else
@@ -71,6 +80,10 @@ public class PlayerController : MonoBehaviour
         Vector3 horizontalMovement = transform.right * horizontalInput + transform.forward * verticalInput;
 
         horizontalMovement *= moveSpeed;
+
+        bool running = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D);
+
+        anim.SetBool("isRunning", running);
 
         movementDirection = horizontalMovement;
         movementDirection.y = verticalVelocity;
