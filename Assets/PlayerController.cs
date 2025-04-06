@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -33,7 +34,6 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        HandleMouse();
 
         HandleMovement();
 
@@ -41,20 +41,6 @@ public class PlayerController : MonoBehaviour
         {
             anim.SetBool("isJumping", false);
         }    
-    }
-
-    private void HandleMouse()
-    {
-        float mouseX = Input.GetAxis("Mouse X") * mousesensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mousesensitivity;
-
-        rotationX -= mouseY;
-
-        rotationX = Mathf.Clamp(rotationX, -lookupClamp, lookupClamp); // setting the min and max value for rotationX 
-
-        mainCamera.localRotation = Quaternion.Euler(rotationX, 0f, 0f);
-
-        transform.Rotate(Vector3.up, mouseX);
     }
 
     private void HandleMovement()
@@ -81,7 +67,7 @@ public class PlayerController : MonoBehaviour
 
         horizontalMovement *= moveSpeed;
 
-        bool running = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D);
+        bool running = (horizontalMovement.magnitude > 0.1f);
 
         anim.SetBool("isRunning", running);
 
