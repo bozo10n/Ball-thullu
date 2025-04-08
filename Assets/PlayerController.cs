@@ -2,28 +2,25 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float rotationSpeed = 10f;
     public float verticalVelocity = 0f;
     public float gravity = 10f;
     public float lookupClamp = 80f;
     public float mousesensitivity = 2f;
-    [Header("Dodge Settings")]
     public float dodgeCooldown = 1.5f;
     public float dodgeDuration = 0.5f;
     public float dodgeSpeedMultiplier = 2f;
-    public float teleportDistance = 5f; // How far the teleport dash goes
+    public float teleportDistance = 5f;
     public bool isInvincible { get; private set; } = false;
     public GameObject dodgeEffectPrefab;
-    public GameObject teleportEndEffectPrefab; // Optional effect for teleport destination
+    public GameObject teleportEndEffectPrefab; 
     [SerializeField]
     private Transform mainCamera;
     private CharacterController characterController;
     private Animator anim;
     private Vector3 movementDirection;
     private float rotationX = 0f;
-    // Dodge variables
     private float lastDodgeTime = -10f;
     private float dodgeEndTime = 0f;
     private bool isDodging = false;
@@ -61,7 +58,6 @@ public class PlayerController : MonoBehaviour
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
         Vector3 horizontalMovement = transform.right * horizontalInput + transform.forward * verticalInput;
-        // Apply speed multiplier when dodging
         float currentSpeed = isDodging ? moveSpeed * dodgeSpeedMultiplier : moveSpeed;
         horizontalMovement *= currentSpeed;
         bool running = (horizontalMovement.magnitude > 0.1f);
@@ -134,7 +130,7 @@ public class PlayerController : MonoBehaviour
                 anim.SetBool("Dodge", true);
             }
 
-            Debug.Log("Player teleported!");
+            Debug.Log("Player dodged!");
         }
     }
     private bool CanDodge()

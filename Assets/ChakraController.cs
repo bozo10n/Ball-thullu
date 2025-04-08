@@ -55,7 +55,7 @@ public class ChakraController : MonoBehaviour
     public int spreadCount = 3;
     public float spreadAngle = 30f;
 
-    public bool rageMode = false;
+    public bool rageMode = true;
     public float rageModeSpeedMultiplier = 1.5f;
     public float rageModeAttackRateMultiplier = 0.6f;
     public float rageModHomingStrengthMultiplier = 1.3f;
