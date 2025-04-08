@@ -6,14 +6,13 @@ using UnityEngine.Assertions.Must;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    // variables for movement
     public float moveSpeed = 5f;
     public float rotationSpeed = 10f;
     public float verticalVelocity = 0f;
     public float gravity = 10f;
     private Vector3 movementDirection;
 
-    public float lookupClamp = 80f; // maximum angle for looking down and up 
+    public float lookupClamp = 80f; 
     public float mousesensitivity = 2f; // self explanatory idiot 
     private float rotationX = 0f;
 

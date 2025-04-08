@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.UI; // Only needed if you're using UI elements to display health
+using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour
 {

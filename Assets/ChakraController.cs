@@ -1,18 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using Unity.VisualScripting;
 using UnityEngine;
 
 public class ChakraController : MonoBehaviour
 {
     public static ChakraController Instance;
-
     public Transform player;
+    private bool isOnCooldown = false;
 
-    public Transform swarmCenter;
-    public List<Transform> swarmBalls = new List<Transform>();
+    public float heightAbovePlayer = 3.5f;
+    public float followSpeed = 5f;
 
+    public List<Transform> allSwarmBalls = new List<Transform>();
     private Dictionary<Transform, Vector3> orbitalAxes = new Dictionary<Transform, Vector3>();
     private Dictionary<Transform, float> orbitalSpeeds = new Dictionary<Transform, float>();
     private Dictionary<Transform, float> orbitalOffsets = new Dictionary<Transform, float>();
@@ -20,230 +20,266 @@ public class ChakraController : MonoBehaviour
 
     public float formationRadius = 1.3f;
     public float orbitalSpeed = 500f;
-    public float cohesionStrength = 2f;
     public float separationRadius = 2f;
     public float separationForce = 2f;
 
     public float spinAccelerationTime = 2f;
     public AnimationCurve spinAccelerationCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
-
-    private Vector3 sharedOrbitalAxis;
     private float spinStartTime;
+    private bool isShootingCooldown = false;
+    public float shootCooldownDuration = 0.8f;
+    public float shootVelocity = 18f;
+    public float shootDestroyDelay = 3f;
 
-    private bool isOnCooldown = false;
+    private Vector3 formationCenter;
+
     private void Awake()
     {
         Instance = this;
-        sharedOrbitalAxis = Vector3.up;
         spinStartTime = Time.time;
+
+
+        if (player != null)
+        {
+            formationCenter = player.position + Vector3.up * heightAbovePlayer;
+        }
+        else
+        {
+            Debug.LogError("Player transform not assigned to ChakraController!");
+            formationCenter = transform.position;
+        }
+    }
+
+    void Update()
+    {
+        if (player == null) return;
+
+        Vector3 distanceToPlayer = player.position - formationCenter;
+        if (distanceToPlayer.magnitude < 8f && !isOnCooldown)
+        {
+            Debug.Log("Player in range");
+            ShootSwarmBall();
+            StartCoroutine(ShootCooldownCoroutine());
+            CleanDestroyedBalls();
+
+            FormChakra();
+            return;
+        }
+        CleanDestroyedBalls();
+        FormChakra();
+        Vector3 targetCenter = player.position + Vector3.up * heightAbovePlayer;
+        formationCenter = Vector3.Lerp(formationCenter, targetCenter, Time.deltaTime * followSpeed);
+
+        
+        
     }
 
     public void addToSwarm(Transform ball)
     {
-        Debug.Log("Added to Swarm");
-        if (!swarmBalls.Contains(ball))
+        if (ball == null || allSwarmBalls.Contains(ball))
         {
-            swarmBalls.Add(ball);
-
-            TrailRenderer tr = ball.gameObject.AddComponent<TrailRenderer>();
-            tr.time = 0.5f;
-
-            tr.widthMultiplier = 0.1f;
-            tr.material = new Material(Shader.Find("Sprites/Default"));
-            Renderer rend = ball.GetComponent<MeshRenderer>();
-
-            // Color assignment
-            float randomShape = Random.value;
-            rend.material.color = randomShape < 0.3 ? Color.black :
-                                   randomShape > 0.7 ? Color.white :
-                                   Color.black;
-            tr.colorGradient = CreateGradient(rend.material.color);
-            // Orbital parameters
-            Vector3 randomAxis = Random.insideUnitSphere.normalized;
-            orbitalAxes[ball] = randomAxis;
-
-            // Base orbital speed with variation
-            float baseSpeed = orbitalSpeed * (1f + Random.Range(-0.15f, 0.15f));
-            orbitalSpeeds[ball] = baseSpeed;
-
-            // Initialize speed multiplier for smooth start
-            currentSpeedMultipliers[ball] = 0f;
-
-            // Random offset
-            orbitalOffsets[ball] = Random.Range(0f, 360f);
+            Debug.LogWarning("Cannot add null ball or duplicate ball.");
+            return;
         }
+
+        Debug.Log($"Adding {ball.name} to Swarm");
+        allSwarmBalls.Add(ball);
+
+        TrailRenderer tr = ball.gameObject.GetComponent<TrailRenderer>();
+        if (tr == null) tr = ball.gameObject.AddComponent<TrailRenderer>();
+        tr.time = 0.2f;
+        tr.widthMultiplier = 0.1f;
+        tr.material = new Material(Shader.Find("Sprites/Default"));
+
+        Renderer rend = ball.GetComponent<MeshRenderer>();
+        if (rend == null)
+        {
+            Debug.LogError($"Ball {ball.name} is missing a MeshRenderer!", ball.gameObject);
+            rend = ball.AddComponent<MeshRenderer>();
+            MeshFilter mf = ball.GetComponent<MeshFilter>();
+            if (mf == null) mf = ball.AddComponent<MeshFilter>();
+            GameObject primitive = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            mf.mesh = primitive.GetComponent<MeshFilter>().sharedMesh;
+            Destroy(primitive);
+            rend.material = new Material(Shader.Find("Standard"));
+        }
+
+        float randomShape = Random.value;
+        rend.material.color = randomShape < 0.3f ? Color.black:
+                               randomShape > 0.7f ? Color.yellow :
+                               Color.white;
+        tr.colorGradient = CreateGradient(rend.material.color);
+
+        orbitalAxes[ball] = Random.insideUnitSphere.normalized;
+        orbitalSpeeds[ball] = orbitalSpeed * (1f + Random.Range(-0.15f, 0.15f));
+        orbitalOffsets[ball] = Random.Range(0f, 360f);
+        currentSpeedMultipliers[ball] = 0f;
     }
 
     private Gradient CreateGradient(Color baseColor)
     {
         Gradient gradient = new Gradient();
-
         Color transparentColor = baseColor;
         transparentColor.a = 0;
-
         gradient.SetKeys(
-            new GradientColorKey[] {
-            new GradientColorKey(baseColor, 0.0f),
-            new GradientColorKey(baseColor, 0.5f)
-            },
-            new GradientAlphaKey[] {
-            new GradientAlphaKey(1.0f, 0.0f),
-            new GradientAlphaKey(0.0f, 1.0f)
-            }
+            new GradientColorKey[] { new GradientColorKey(baseColor, 0.0f), new GradientColorKey(baseColor, 0.5f) },
+            new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
         );
-
         return gradient;
     }
-    private void Update()
+
+    void CleanDestroyedBalls()
     {
-        CleansSwarmDictionaries();
-
-        swarmBalls.RemoveAll(ball => ball == null);
-
-        formChakra();
-        Vector3 distanceToPlayer = player.position - swarmCenter.position;
-
-        if (distanceToPlayer.magnitude < 8f && !isOnCooldown)
+        List<Transform> destroyedBalls = new List<Transform>();
+        foreach (var ball in orbitalAxes.Keys)
         {
-            Debug.Log("Player in range");
-            shootSwarmBall();
-            StartCoroutine(ShootCooldown());
+            if (ball == null) destroyedBalls.Add(ball);
         }
 
+        foreach (var ball in destroyedBalls)
+        {
+            orbitalAxes.Remove(ball);
+            orbitalSpeeds.Remove(ball);
+            orbitalOffsets.Remove(ball);
+            currentSpeedMultipliers.Remove(ball);
+        }
+
+        allSwarmBalls.RemoveAll(ball => ball == null);
     }
 
-    private void CleansSwarmDictionaries()
+    void FormChakra()
     {
-        List<Transform> nullKeys = new List<Transform>();
-
-        foreach (Transform key in orbitalAxes.Keys)
-        {
-            if (key == null) { nullKeys.Add(key); }
-        }
-
-        foreach (Transform key in nullKeys)
-        {
-            orbitalAxes.Remove(key);
-            orbitalOffsets.Remove(key);
-            orbitalSpeeds.Remove(key);
-            currentSpeedMultipliers.Remove(key);
-            nullKeys.Remove(key);
-        }
-    }
-
-    private void formChakra()
-    {
-        // Calculate current spin acceleration progress
         float spinProgress = Mathf.Clamp01((Time.time - spinStartTime) / spinAccelerationTime);
         float accelerationFactor = spinAccelerationCurve.Evaluate(spinProgress);
 
-        foreach (Transform swarmBall in swarmBalls)
+        foreach (Transform swarmBall in allSwarmBalls)
         {
-            if (swarmBall == null) { continue; }
+            if (swarmBall == null) continue;
 
-            // Gradually increase speed multiplier
+            if (!orbitalAxes.ContainsKey(swarmBall)) continue;
+
             currentSpeedMultipliers[swarmBall] = Mathf.Lerp(
-                currentSpeedMultipliers[swarmBall],
+                currentSpeedMultipliers.ContainsKey(swarmBall) ? currentSpeedMultipliers[swarmBall] : 0f,
                 1f,
-                Time.deltaTime / spinAccelerationTime
+                Time.deltaTime / (spinAccelerationTime + 0.01f)
             );
 
-            Vector3 baseOrbitalPosition = CalculateOrbitalPosition(swarmBall, accelerationFactor);
+            Vector3 baseOrbitalPosition = CalculateOrbitalPosition(swarmBall, formationCenter, accelerationFactor);
 
-            // Separation force
+
             Vector3 separationMove = CalculateSeparationForce(swarmBall);
 
-            // Cohesion force to maintain spherical formation
-            Vector3 toCenter = swarmCenter.position - baseOrbitalPosition;
-            Vector3 cohesionMove = toCenter.normalized * cohesionStrength;
-
-            // Combine forces and apply movement
-            Vector3 finalMove = (cohesionMove + separationMove) * Time.deltaTime;
+            Vector3 finalMove = separationMove * Time.deltaTime;
             Vector3 newPosition = baseOrbitalPosition + finalMove;
-            swarmBall.position = newPosition;
+            swarmBall.position = Vector3.Lerp(swarmBall.position, newPosition, Time.deltaTime * 10f);
         }
     }
 
-    private Vector3 CalculateOrbitalPosition(Transform swarmBall, float accelerationFactor)
+    Vector3 CalculateOrbitalPosition(Transform swarmBall, Vector3 orbitCenter, float accelerationFactor)
     {
+        if (!orbitalAxes.ContainsKey(swarmBall) || !orbitalSpeeds.ContainsKey(swarmBall) ||
+            !orbitalOffsets.ContainsKey(swarmBall) || !currentSpeedMultipliers.ContainsKey(swarmBall))
+        {
+            return swarmBall.position;
+        }
+
         Vector3 orbitAxis = orbitalAxes[swarmBall];
         float uniqueSpeed = orbitalSpeeds[swarmBall];
         float uniqueOffset = orbitalOffsets[swarmBall];
+        float speedMultiplier = currentSpeedMultipliers[swarmBall];
 
-        // Apply speed multiplier and acceleration factor
-        float angle = (Time.time * uniqueSpeed * currentSpeedMultipliers[swarmBall] * accelerationFactor + uniqueOffset) % 360f;
-
-        Quaternion rotation = Quaternion.AngleAxis(angle, sharedOrbitalAxis);
+        float angle = (Time.time * uniqueSpeed * speedMultiplier * accelerationFactor + uniqueOffset) % 360f;
+        Quaternion rotation = Quaternion.AngleAxis(angle, orbitAxis);
         Vector3 orbitalOffset = rotation * (Vector3.forward * formationRadius);
-        return swarmCenter.position + orbitalOffset;
+
+        return orbitCenter + orbitalOffset;
     }
 
-    private Vector3 CalculateSeparationForce(Transform ball)
+    Vector3 CalculateSeparationForce(Transform ball)
     {
         Vector3 separationMove = Vector3.zero;
-        foreach (Transform otherBall in swarmBalls)
+
+        foreach (Transform otherBall in allSwarmBalls)
         {
-            if (otherBall == ball) continue;
+            if (otherBall == null || otherBall == ball) continue;
 
             Vector3 separation = ball.position - otherBall.position;
-            float distance = separation.magnitude;
+            float distanceSqr = separation.sqrMagnitude;
 
-            if (distance < separationRadius)
+            if (distanceSqr < separationRadius * separationRadius && distanceSqr > 0.001f)
             {
-                separationMove += separation.normalized / (distance + 0.1f) * separationForce;
+                float distance = Mathf.Sqrt(distanceSqr);
+                separationMove += (separation.normalized / (distance + 0.1f)) * separationForce;
             }
         }
+
         return separationMove;
     }
 
-    private void shootSwarmBall()
+    void ShootSwarmBall()
     {
-        if (swarmBalls.Count == 0) { return; }
+        if (allSwarmBalls.Count == 0 || player == null) return;
 
-        Transform chosenBall = swarmBalls[Random.Range(0, swarmBalls.Count)];
-        swarmBalls.Remove(chosenBall);
+        int ballIndex = Random.Range(0, allSwarmBalls.Count);
+        Transform chosenBall = allSwarmBalls[ballIndex];
 
-        if (orbitalAxes.ContainsKey(chosenBall)) { orbitalAxes.Remove(chosenBall); }
-        if (orbitalSpeeds.ContainsKey(chosenBall)) { orbitalSpeeds.Remove(chosenBall); }
-        if (orbitalOffsets.ContainsKey(chosenBall)) { orbitalOffsets.Remove(chosenBall); }
-        if (currentSpeedMultipliers.ContainsKey(chosenBall)) { currentSpeedMultipliers.Remove(chosenBall); }
+        if (chosenBall == null)
+        {
+            allSwarmBalls.RemoveAt(ballIndex);
+            return;
+        }
 
-        Vector3 shootDirection = (player.position - chosenBall.position + new Vector3(Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f))).normalized;
+        allSwarmBalls.RemoveAt(ballIndex);
+        orbitalAxes.Remove(chosenBall);
+        orbitalSpeeds.Remove(chosenBall);
+        orbitalOffsets.Remove(chosenBall);
+        currentSpeedMultipliers.Remove(chosenBall);
 
-        float shootVelocity = 18f;
-        Vector3 velocity = shootDirection * shootVelocity;
+ 
+        Vector3 shootDirection = (player.position - chosenBall.position).normalized;
+        shootDirection += new Vector3(Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f));
+        shootDirection.Normalize();
 
         Rigidbody rb = chosenBall.GetComponent<Rigidbody>();
-
         if (rb == null)
         {
             rb = chosenBall.AddComponent<Rigidbody>();
-            rb.useGravity = false;
         }
-        rb.useGravity = true;
-        chosenBall.gameObject.AddComponent<SphereCollider>();
-        
-        rb.isKinematic = false;
 
+        SphereCollider sc = chosenBall.GetComponent<SphereCollider>();
+        if (sc == null) sc = chosenBall.AddComponent<SphereCollider>();
+        sc.isTrigger = false;
+
+        rb.isKinematic = false;
+        rb.useGravity = true;
+        rb.linearVelocity = Vector3.zero;
         rb.AddForce(shootDirection * shootVelocity, ForceMode.VelocityChange);
-        chosenBall.gameObject.AddComponent<DamageOnCollision>();
+
+        DamageOnCollision doc = chosenBall.GetComponent<DamageOnCollision>();
+        if (doc == null) chosenBall.AddComponent<DamageOnCollision>();
 
         if (chosenBall.gameObject != null)
         {
-            Destroy(chosenBall.gameObject, 3f);
+            Destroy(chosenBall.gameObject, shootDestroyDelay);
         }
     }
 
-    private IEnumerator ShootCooldown()
+    private IEnumerator ShootCooldownCoroutine()
     {
         isOnCooldown = true;
-        yield return new WaitForSeconds(0.8f);
+        yield return new WaitForSeconds(shootCooldownDuration);
         isOnCooldown = false;
     }
 
     private void OnDrawGizmos()
     {
-        Gizmos.DrawWireSphere(swarmCenter.position, 8f);
-        Gizmos.color = Color.yellow;
+        if (Application.isPlaying && player != null)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(formationCenter, formationRadius);
+
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(player.position, formationCenter);
+        }
     }
 }
