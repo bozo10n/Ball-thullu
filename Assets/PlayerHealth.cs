@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class PlayerHealth : MonoBehaviour
 {
@@ -7,7 +8,6 @@ public class PlayerHealth : MonoBehaviour
     public float currentHealth;
 
     public Slider healthBar;
-
 
     void Start()
     {
@@ -19,8 +19,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
-
-        if(Input.GetKeyDown(KeyCode.Tab))
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
             TakeDamage(10f);
         }
@@ -28,7 +27,6 @@ public class PlayerHealth : MonoBehaviour
 
     public void TakeDamage(float damageAmount)
     {
-
         currentHealth -= damageAmount;
         UpdateHealthUI();
 
@@ -40,13 +38,12 @@ public class PlayerHealth : MonoBehaviour
 
     private void UpdateHealthUI()
     {
-    
         healthBar.value = currentHealth;
-
     }
 
     private void Die()
     {
         Debug.Log("Player has died!");
+        SceneManager.LoadScene("GameOverScene");
     }
 }
