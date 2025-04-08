@@ -1,54 +1,53 @@
-using System.Runtime.CompilerServices;
-using JetBrains.Annotations;
 using UnityEngine;
-using UnityEngine.Assertions.Must;
-
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float rotationSpeed = 10f;
     public float verticalVelocity = 0f;
     public float gravity = 10f;
-    private Vector3 movementDirection;
-
-    public float lookupClamp = 80f; 
-    public float mousesensitivity = 2f; // self explanatory idiot 
-    private float rotationX = 0f;
-
+    public float lookupClamp = 80f;
+    public float mousesensitivity = 2f;
+    [Header("Dodge Settings")]
+    public float dodgeCooldown = 1.5f;
+    public float dodgeDuration = 0.5f;
+    public float dodgeSpeedMultiplier = 2f;
+    public float teleportDistance = 5f; // How far the teleport dash goes
+    public bool isInvincible { get; private set; } = false;
+    public GameObject dodgeEffectPrefab;
+    public GameObject teleportEndEffectPrefab; // Optional effect for teleport destination
     [SerializeField]
-    private Transform mainCamera; // referene to main camera
-    private CharacterController characterController; // reference to character controller
+    private Transform mainCamera;
+    private CharacterController characterController;
     private Animator anim;
-
-
+    private Vector3 movementDirection;
+    private float rotationX = 0f;
+    // Dodge variables
+    private float lastDodgeTime = -10f;
+    private float dodgeEndTime = 0f;
+    private bool isDodging = false;
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
         anim = GetComponentInChildren<Animator>();
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
-
     private void Update()
     {
-
         HandleMovement();
-
-        if(characterController.isGrounded)
+        HandleDodge();
+        if (characterController.isGrounded)
         {
             anim.SetBool("isJumping", false);
-        }    
+        }
     }
-
     private void HandleMovement()
     {
         if (characterController.isGrounded)
         {
-            
             verticalVelocity = -0.5f;
-
             if (Input.GetButtonDown("Jump"))
             {
                 verticalVelocity = Mathf.Sqrt(2f * gravity * 2f);
@@ -61,19 +60,85 @@ public class PlayerController : MonoBehaviour
         }
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
-
         Vector3 horizontalMovement = transform.right * horizontalInput + transform.forward * verticalInput;
-
-        horizontalMovement *= moveSpeed;
-
+        // Apply speed multiplier when dodging
+        float currentSpeed = isDodging ? moveSpeed * dodgeSpeedMultiplier : moveSpeed;
+        horizontalMovement *= currentSpeed;
         bool running = (horizontalMovement.magnitude > 0.1f);
-
         anim.SetBool("isRunning", running);
-
         movementDirection = horizontalMovement;
         movementDirection.y = verticalVelocity;
-
         characterController.Move(movementDirection * Time.deltaTime);
     }
+    private void HandleDodge()
+    {
+        if (Time.time > dodgeEndTime)
+        {
+            isInvincible = false;
+            isDodging = false;
+            anim.SetBool("Dodge", false);
+        }
+        if (Input.GetKeyDown(KeyCode.LeftShift) && CanDodge())
+        {
+            Vector3 startPosition = transform.position;
 
+            Vector3 teleportDirection;
+            float horizontalInput = Input.GetAxis("Horizontal");
+            float verticalInput = Input.GetAxis("Vertical");
+
+            if (Mathf.Abs(horizontalInput) > 0.1f || Mathf.Abs(verticalInput) > 0.1f)
+            {
+                teleportDirection = transform.right * horizontalInput + transform.forward * verticalInput;
+                teleportDirection.Normalize();
+            }
+            else
+            {
+                teleportDirection = transform.forward;
+            }
+
+            Vector3 destination = transform.position + teleportDirection * teleportDistance;
+
+            RaycastHit hit;
+            if (Physics.Raycast(new Vector3(destination.x, destination.y + 1f, destination.z), Vector3.down, out hit, 3f))
+            {
+                destination.y = hit.point.y;
+            }
+
+            RaycastHit wallHit;
+            if (Physics.Raycast(startPosition, teleportDirection, out wallHit, teleportDistance))
+            {
+                destination = wallHit.point - (teleportDirection * 0.5f);
+            }
+
+            if (dodgeEffectPrefab != null)
+            {
+                Instantiate(dodgeEffectPrefab, transform.position, Quaternion.identity);
+            }
+
+            characterController.enabled = false;
+            transform.position = destination;
+            characterController.enabled = true;
+
+            if (teleportEndEffectPrefab != null)
+            {
+                Instantiate(teleportEndEffectPrefab, transform.position, Quaternion.identity);
+            }
+
+            lastDodgeTime = Time.time;
+            dodgeEndTime = Time.time + dodgeDuration;
+            isInvincible = true;
+            isDodging = true;
+
+            if (anim != null)
+            {
+                anim.SetBool("Dodge", true);
+            }
+
+            Debug.Log("Player teleported!");
+        }
+    }
+    private bool CanDodge()
+    {
+        return Time.time > lastDodgeTime + dodgeCooldown;
+    }
 }

@@ -1,24 +1,49 @@
 using UnityEngine;
-
 public class DamageOnCollision : MonoBehaviour
 {
-    public int damageAmount = 10;
-    private bool hasDealtDamage = false;
+    public float damageAmount = 10f;
+    public bool destroyOnImpact = true;
+    public GameObject impactEffectPrefab;
+    public float lifespan = 3f;
 
-    private void OnCollisionEnter(Collision collision)
+    private void Start()
     {
-        if (hasDealtDamage) return;
+        Destroy(gameObject, lifespan);
+    }
 
-        if (collision.gameObject.CompareTag("Player"))
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
         {
-            PlayerHealth playerHealth = collision.gameObject.GetComponent<PlayerHealth>();
+            PlayerController playerController = other.GetComponent<PlayerController>();
+            if (playerController != null && playerController.isInvincible)
+            {
+                Debug.Log("Player dodged the attack!");
+                if (impactEffectPrefab != null)
+                {
+                    Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
+                }
+                Destroy(gameObject);
+                return;
+            }
+            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
                 playerHealth.TakeDamage(damageAmount);
-                hasDealtDamage = true;
+                Debug.Log($"Player hit for {damageAmount} damage!");
+            }
+            else
+            {
+                Debug.LogWarning("Player hit but no PlayerHealth component found!");
+            }
+            if (impactEffectPrefab != null)
+            {
+                Instantiate(impactEffectPrefab, transform.position, Quaternion.identity);
+            }
+            if (destroyOnImpact)
+            {
+                Destroy(gameObject);
             }
         }
-
-        Destroy(gameObject, 0.1f);
     }
 }

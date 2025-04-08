@@ -11,6 +11,9 @@ public class ChakraController : MonoBehaviour
 
     public float heightAbovePlayer = 3.5f;
     public float followSpeed = 5f;
+    public float preferredDistanceFromPlayer = 12f;
+    public float minDistanceFromPlayer = 8f;
+    public float maxDistanceFromPlayer = 20f;
 
     public List<Transform> allSwarmBalls = new List<Transform>();
     private Dictionary<Transform, Vector3> orbitalAxes = new Dictionary<Transform, Vector3>();
@@ -31,54 +34,135 @@ public class ChakraController : MonoBehaviour
     public float shootVelocity = 18f;
     public float shootDestroyDelay = 3f;
 
+    public bool enableHoming = true;
+    public float homingSpeed = 8f;            
+    public float homingActivationDelay = 0.5f;
+    public float homingMaxSpeed = 25f;        
+    public AnimationCurve homingIntensityCurve = AnimationCurve.EaseInOut(0, 0.3f, 1, 1);
+    private List<HomingProjectile> activeHomingProjectiles = new List<HomingProjectile>();
+
+    public enum AttackPattern { Single, Burst, Volley, Spread }
+    private AttackPattern currentPattern = AttackPattern.Single;
+    private float patternSwitchTime = 10f;
+    private float lastPatternSwitchTime;
+
+    public int burstCount = 3;
+    public float burstDelay = 0.2f;
+
+    public int volleyCount = 5;
+    public float volleyDelay = 0.1f;
+
+    public int spreadCount = 3;
+    public float spreadAngle = 30f;
+
+    public bool rageMode = false;
+    public float rageModeSpeedMultiplier = 1.5f;
+    public float rageModeAttackRateMultiplier = 0.6f;
+    public float rageModHomingStrengthMultiplier = 1.3f;
+
     private Vector3 formationCenter;
+    private Vector3 targetPosition;
 
     private void Awake()
     {
         Instance = this;
         spinStartTime = Time.time;
-
+        lastPatternSwitchTime = Time.time;
 
         if (player != null)
         {
             formationCenter = player.position + Vector3.up * heightAbovePlayer;
+            targetPosition = CalculateTargetPosition();
         }
-        else
-        {
-            Debug.LogError("Player transform not assigned to ChakraController!");
-            formationCenter = transform.position;
-        }
+
     }
 
     void Update()
     {
         if (player == null) return;
 
-        Vector3 distanceToPlayer = player.position - formationCenter;
-        if (distanceToPlayer.magnitude < 8f && !isOnCooldown)
-        {
-            Debug.Log("Player in range");
-            ShootSwarmBall();
-            StartCoroutine(ShootCooldownCoroutine());
-            CleanDestroyedBalls();
-
-            FormChakra();
-            return;
-        }
         CleanDestroyedBalls();
-        FormChakra();
-        Vector3 targetCenter = player.position + Vector3.up * heightAbovePlayer;
-        formationCenter = Vector3.Lerp(formationCenter, targetCenter, Time.deltaTime * followSpeed);
 
-        
-        
+        FormChakra();
+
+        float distanceToPlayer = Vector3.Distance(formationCenter, player.position);
+
+        targetPosition = CalculateTargetPosition();
+
+        formationCenter = Vector3.Lerp(formationCenter, targetPosition, Time.deltaTime * followSpeed);
+
+        if (Time.time - lastPatternSwitchTime > patternSwitchTime)
+        {
+            SwitchAttackPattern();
+            lastPatternSwitchTime = Time.time;
+        }
+
+        if (distanceToPlayer < preferredDistanceFromPlayer * 1.2f && !isOnCooldown)
+        {
+            ExecuteCurrentAttackPattern();
+        }
+    }
+
+    Vector3 CalculateTargetPosition()
+    {
+        Vector3 directionFromPlayer = formationCenter - player.position;
+        directionFromPlayer.y = 0; 
+
+        float currentDistance = directionFromPlayer.magnitude;
+
+        if (currentDistance < minDistanceFromPlayer)
+        {
+            directionFromPlayer = directionFromPlayer.normalized * preferredDistanceFromPlayer;
+        }
+        else if (currentDistance > maxDistanceFromPlayer)
+        {
+            directionFromPlayer = directionFromPlayer.normalized * preferredDistanceFromPlayer;
+        }
+        else
+        {
+            Quaternion rotation = Quaternion.AngleAxis(Time.deltaTime * 15f, Vector3.up);
+            directionFromPlayer = rotation * directionFromPlayer.normalized * preferredDistanceFromPlayer;
+        }
+
+        Vector3 targetPos = player.position + directionFromPlayer;
+        targetPos.y = player.position.y + heightAbovePlayer;
+
+        return targetPos;
+    }
+
+    void SwitchAttackPattern()
+    {
+        int patternIndex = Random.Range(0, System.Enum.GetValues(typeof(AttackPattern)).Length);
+        currentPattern = (AttackPattern)patternIndex;
+    }
+
+    void ExecuteCurrentAttackPattern()
+    {
+        switch (currentPattern)
+        {
+            case AttackPattern.Single:
+                ShootSwarmBall();
+                StartCoroutine(ShootCooldownCoroutine());
+                break;
+
+            case AttackPattern.Burst:
+                StartCoroutine(BurstAttackCoroutine());
+                break;
+
+            case AttackPattern.Volley:
+                StartCoroutine(VolleyAttackCoroutine());
+                break;
+
+            case AttackPattern.Spread:
+                StartCoroutine(SpreadAttackCoroutine());
+                break;
+        }
     }
 
     public void addToSwarm(Transform ball)
     {
         if (ball == null || allSwarmBalls.Contains(ball))
         {
-            Debug.LogWarning("Cannot add null ball or duplicate ball.");
             return;
         }
 
@@ -94,7 +178,6 @@ public class ChakraController : MonoBehaviour
         Renderer rend = ball.GetComponent<MeshRenderer>();
         if (rend == null)
         {
-            Debug.LogError($"Ball {ball.name} is missing a MeshRenderer!", ball.gameObject);
             rend = ball.AddComponent<MeshRenderer>();
             MeshFilter mf = ball.GetComponent<MeshFilter>();
             if (mf == null) mf = ball.AddComponent<MeshFilter>();
@@ -105,9 +188,9 @@ public class ChakraController : MonoBehaviour
         }
 
         float randomShape = Random.value;
-        rend.material.color = randomShape < 0.3f ? Color.black:
-                               randomShape > 0.7f ? Color.yellow :
-                               Color.white;
+        rend.material.color = randomShape < 0.3f ? Color.black :
+                               randomShape > 0.7f ? Color.red :
+                               Color.black;
         tr.colorGradient = CreateGradient(rend.material.color);
 
         orbitalAxes[ball] = Random.insideUnitSphere.normalized;
@@ -165,7 +248,6 @@ public class ChakraController : MonoBehaviour
             );
 
             Vector3 baseOrbitalPosition = CalculateOrbitalPosition(swarmBall, formationCenter, accelerationFactor);
-
 
             Vector3 separationMove = CalculateSeparationForce(swarmBall);
 
@@ -235,40 +317,205 @@ public class ChakraController : MonoBehaviour
         orbitalOffsets.Remove(chosenBall);
         currentSpeedMultipliers.Remove(chosenBall);
 
- 
-        Vector3 shootDirection = (player.position - chosenBall.position).normalized;
+        Vector3 predictedPosition = PredictPlayerPosition();
+        Vector3 shootDirection = (predictedPosition - chosenBall.position).normalized;
         shootDirection += new Vector3(Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f), Random.Range(-0.05f, 0.05f));
         shootDirection.Normalize();
 
-        Rigidbody rb = chosenBall.GetComponent<Rigidbody>();
-        if (rb == null)
+        ConfigureAndShootBall(chosenBall, shootDirection);
+    }
+
+    private Vector3 PredictPlayerPosition()
+    {
+        Rigidbody playerRb = player.GetComponent<Rigidbody>();
+        if (playerRb != null)
         {
-            rb = chosenBall.AddComponent<Rigidbody>();
+            float predictionTime = Vector3.Distance(player.position, formationCenter) / shootVelocity;
+            return player.position + playerRb.linearVelocity * predictionTime * 0.7f;
+        }
+        return player.position;
+    }
+
+    private void ConfigureAndShootBall(Transform ball, Vector3 direction)
+    {
+        if (enableHoming)
+        {
+            Rigidbody existingRb = ball.GetComponent<Rigidbody>();
+            if (existingRb != null)
+            {
+                Destroy(existingRb);
+            }
+            SphereCollider sc = ball.GetComponent<SphereCollider>();
+            if (sc == null) sc = ball.AddComponent<SphereCollider>();
+            sc.isTrigger = true; 
+
+            DamageOnCollision doc = ball.GetComponent<DamageOnCollision>();
+            if (doc == null) ball.AddComponent<DamageOnCollision>();
+
+            HomingProjectile homingComponent = ball.GetComponent<HomingProjectile>();
+            if (homingComponent == null) homingComponent = ball.gameObject.AddComponent<HomingProjectile>();
+
+            float homingSpeedValue = rageMode ? homingSpeed * rageModHomingStrengthMultiplier : homingSpeed;
+
+            homingComponent.Initialize(
+                player,
+                homingSpeedValue,
+                homingActivationDelay,
+                homingIntensityCurve,
+                homingMaxSpeed
+            );
+
+            ball.position += direction * shootVelocity * Time.deltaTime;
+
+            activeHomingProjectiles.Add(homingComponent);
+        }
+        else
+        {
+            Rigidbody rb = ball.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = ball.AddComponent<Rigidbody>();
+            }
+
+            SphereCollider sc = ball.GetComponent<SphereCollider>();
+            if (sc == null) sc = ball.AddComponent<SphereCollider>();
+            sc.isTrigger = false;
+
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            rb.linearVelocity = Vector3.zero;
+
+            float currentVelocity = rageMode ? shootVelocity * rageModeSpeedMultiplier : shootVelocity;
+            rb.AddForce(direction * currentVelocity, ForceMode.VelocityChange);
+
+            DamageOnCollision doc = ball.GetComponent<DamageOnCollision>();
+            if (doc == null) ball.AddComponent<DamageOnCollision>();
         }
 
-        SphereCollider sc = chosenBall.GetComponent<SphereCollider>();
-        if (sc == null) sc = chosenBall.AddComponent<SphereCollider>();
-        sc.isTrigger = false;
-
-        rb.isKinematic = false;
-        rb.useGravity = true;
-        rb.linearVelocity = Vector3.zero;
-        rb.AddForce(shootDirection * shootVelocity, ForceMode.VelocityChange);
-
-        DamageOnCollision doc = chosenBall.GetComponent<DamageOnCollision>();
-        if (doc == null) chosenBall.AddComponent<DamageOnCollision>();
-
-        if (chosenBall.gameObject != null)
+        if (ball.gameObject != null)
         {
-            Destroy(chosenBall.gameObject, shootDestroyDelay);
+            Destroy(ball.gameObject, shootDestroyDelay);
         }
+    }
+
+    private IEnumerator BurstAttackCoroutine()
+    {
+        isOnCooldown = true;
+
+        int actualBurstCount = Mathf.Min(burstCount, allSwarmBalls.Count);
+        for (int i = 0; i < actualBurstCount; i++)
+        {
+            if (allSwarmBalls.Count == 0) break;
+            ShootSwarmBall();
+            yield return new WaitForSeconds(burstDelay);
+        }
+
+        float cooldownTime = rageMode ? shootCooldownDuration * rageModeAttackRateMultiplier : shootCooldownDuration;
+        yield return new WaitForSeconds(cooldownTime);
+        isOnCooldown = false;
+    }
+
+    private IEnumerator VolleyAttackCoroutine()
+    {
+        isOnCooldown = true;
+
+        int actualVolleyCount = Mathf.Min(volleyCount, allSwarmBalls.Count);
+        for (int i = 0; i < actualVolleyCount; i++)
+        {
+            if (allSwarmBalls.Count == 0) break;
+
+            Vector3 predictedPosition = PredictPlayerPosition();
+            Vector3 baseDirection = (predictedPosition - formationCenter).normalized;
+
+            int ballIndex = Random.Range(0, allSwarmBalls.Count);
+            Transform chosenBall = allSwarmBalls[ballIndex];
+
+            if (chosenBall == null)
+            {
+                allSwarmBalls.RemoveAt(ballIndex);
+                continue;
+            }
+
+            allSwarmBalls.RemoveAt(ballIndex);
+            orbitalAxes.Remove(chosenBall);
+            orbitalSpeeds.Remove(chosenBall);
+            orbitalOffsets.Remove(chosenBall);
+            currentSpeedMultipliers.Remove(chosenBall);
+
+            Vector3 shootDirection = baseDirection + new Vector3(
+                Random.Range(-0.1f, 0.1f),
+                Random.Range(-0.1f, 0.1f),
+                Random.Range(-0.1f, 0.1f)
+            ).normalized;
+
+            ConfigureAndShootBall(chosenBall, shootDirection);
+            yield return new WaitForSeconds(volleyDelay);
+        }
+
+        float cooldownTime = rageMode ? shootCooldownDuration * 1.2f * rageModeAttackRateMultiplier : shootCooldownDuration * 1.2f;
+        yield return new WaitForSeconds(cooldownTime);
+        isOnCooldown = false;
+    }
+
+    private IEnumerator SpreadAttackCoroutine()
+    {
+        isOnCooldown = true;
+
+        if (allSwarmBalls.Count >= spreadCount)
+        {
+            Vector3 baseDirection = (PredictPlayerPosition() - formationCenter).normalized;
+            Vector3 rightVector = Vector3.Cross(baseDirection, Vector3.up).normalized;
+
+            float angleStep = spreadAngle / (spreadCount - 1);
+            float startAngle = -spreadAngle / 2;
+
+            for (int i = 0; i < spreadCount; i++)
+            {
+                float currentAngle = startAngle + (angleStep * i);
+                Vector3 shootDirection = Quaternion.AngleAxis(currentAngle, Vector3.up) * baseDirection;
+
+                int ballIndex = Random.Range(0, allSwarmBalls.Count);
+                Transform chosenBall = allSwarmBalls[ballIndex];
+
+                if (chosenBall == null)
+                {
+                    allSwarmBalls.RemoveAt(ballIndex);
+                    continue;
+                }
+
+                allSwarmBalls.RemoveAt(ballIndex);
+                orbitalAxes.Remove(chosenBall);
+                orbitalSpeeds.Remove(chosenBall);
+                orbitalOffsets.Remove(chosenBall);
+                currentSpeedMultipliers.Remove(chosenBall);
+
+                ConfigureAndShootBall(chosenBall, shootDirection);
+            }
+        }
+        else
+        {
+            ShootSwarmBall();
+        }
+
+        float cooldownTime = rageMode ? shootCooldownDuration * 1.5f * rageModeAttackRateMultiplier : shootCooldownDuration * 1.5f;
+        yield return new WaitForSeconds(cooldownTime);
+        isOnCooldown = false;
     }
 
     private IEnumerator ShootCooldownCoroutine()
     {
         isOnCooldown = true;
-        yield return new WaitForSeconds(shootCooldownDuration);
+        float cooldownTime = rageMode ? shootCooldownDuration * rageModeAttackRateMultiplier : shootCooldownDuration;
+        yield return new WaitForSeconds(cooldownTime);
         isOnCooldown = false;
+    }
+
+    public void ActivateRageMode()
+    {
+        rageMode = true;
+        patternSwitchTime *= 0.7f;
+        formationRadius *= 1.2f;
+        orbitalSpeed *= 1.3f;
     }
 
     private void OnDrawGizmos()
@@ -280,6 +527,15 @@ public class ChakraController : MonoBehaviour
 
             Gizmos.color = Color.yellow;
             Gizmos.DrawLine(player.position, formationCenter);
+
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(player.position, preferredDistanceFromPlayer);
+
+            Gizmos.color = new Color(1, 0, 0, 0.3f);
+            Gizmos.DrawWireSphere(player.position, minDistanceFromPlayer);
+
+            Gizmos.color = new Color(0, 0, 1, 0.3f);
+            Gizmos.DrawWireSphere(player.position, maxDistanceFromPlayer);
         }
     }
 }
