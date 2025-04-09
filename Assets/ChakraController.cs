@@ -9,6 +9,8 @@ public class ChakraController : MonoBehaviour
     public Transform player;
     private bool isOnCooldown = false;
 
+    
+
     public float heightAbovePlayer = 3.5f;
     public float followSpeed = 5f;
     public float preferredDistanceFromPlayer = 12f;
@@ -63,6 +65,9 @@ public class ChakraController : MonoBehaviour
     private Vector3 formationCenter;
     private Vector3 targetPosition;
 
+    public GameObject core;
+    public GameObject coreInstance;
+
     private void Awake()
     {
         Instance = this;
@@ -73,6 +78,9 @@ public class ChakraController : MonoBehaviour
         {
             formationCenter = player.position + Vector3.up * heightAbovePlayer;
             targetPosition = CalculateTargetPosition();
+            coreInstance = Instantiate(core);
+            coreInstance.transform.position = formationCenter;
+
         }
 
     }
@@ -85,11 +93,14 @@ public class ChakraController : MonoBehaviour
 
         FormChakra();
 
+        
+
         float distanceToPlayer = Vector3.Distance(formationCenter, player.position);
 
         targetPosition = CalculateTargetPosition();
 
         formationCenter = Vector3.Lerp(formationCenter, targetPosition, Time.deltaTime * followSpeed);
+        coreInstance.transform.position = formationCenter;
 
         if (Time.time - lastPatternSwitchTime > patternSwitchTime)
         {

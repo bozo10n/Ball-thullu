@@ -1845,6 +1845,10 @@ PrefabInstance:
       value: -3.31
       objectReference: {fileID: 0}
     - target: {fileID: 3114122518664278786, guid: 5db588d1b9473e545abb549417887c04, type: 3}
+      propertyPath: core
+      value: 
+      objectReference: {fileID: 7626184203479759231, guid: 47f6e0f78ed25ba44b21ed423cd729d4, type: 3}
+    - target: {fileID: 3114122518664278786, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: player
       value: 
       objectReference: {fileID: 378193162}
@@ -1930,7 +1934,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3786101506321001188, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: numberOfEnemies
-      value: 140
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 3903346484873061906, guid: 5db588d1b9473e545abb549417887c04, type: 3}
       propertyPath: m_LocalPosition.x
