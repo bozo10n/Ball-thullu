@@ -72,6 +72,6 @@ This POC is being **rebuilt from the ground up** for a commercial version with a
 
 ---
 
-## 📜 License
+## License
 
 This project uses the MIT license.
