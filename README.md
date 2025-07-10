@@ -1,7 +1,7 @@
 # Ball-Thullu  
 *A Survival Game Prototype With Cosmic Swarm Horror (Unity 3D)*  
 
-> ⚠️ **This is a messy, mid, buggy proof of concept (POC)** for a larger commercial project being remade from scratch. But the boss mechanic is pretty interesting. Worth a peek.
+> **This is a messy, mid, buggy proof of concept (POC)** for a larger commercial project being remade from scratch. But the boss mechanic is pretty interesting. Worth a peek.
 
 ---
 
